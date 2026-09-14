@@ -1,0 +1,218 @@
+/* ---------- Шрифты: только локальные файлы, кириллица + латиница ---------- */
+
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('../fonts/ibm-plex-mono-400-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('../fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('../fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url('../fonts/ibm-plex-sans-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url('../fonts/ibm-plex-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url('../fonts/ibm-plex-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('../fonts/oswald-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('../fonts/oswald-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('../fonts/oswald-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* ---------- База. Схема фиксированная, themeParams Telegram не используются ---------- */
+
+:root {
+  --bg: #0A0A0A;
+  --fg: #F2F2F2;
+  --accent: #E2583F;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --disp: Oswald, 'Arial Narrow', sans-serif;
+  --inset-top: var(--tg-content-safe-area-inset-top, 0px);
+  --inset-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.app { position: relative; max-width: 480px; margin: 0 auto; height: 100vh; height: 100dvh; overflow: hidden; }
+.tg .app { height: var(--tg-viewport-stable-height, 100vh); }
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+.scroll {
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: calc(8px + var(--inset-top)) 16px 18px;
+}
+.bottom { flex: none; padding: 10px 16px calc(16px + var(--inset-bottom)); border-top: 1px solid #161616; background: var(--bg); }
+
+/* ---------- Шапка ---------- */
+
+.head { display: flex; align-items: center; justify-content: space-between; height: 40px; }
+.brand-row { display: flex; align-items: center; gap: 9px; }
+.logo { display: block; width: 21px; height: 21px; }
+.brand { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; color: #6E6E6E; }
+.back { all: unset; cursor: pointer; padding: 12px 0; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; color: #6E6E6E; }
+.label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; color: #5A5A5A; }
+
+/* ---------- Экран 1: игры ---------- */
+
+.tagline { margin: 6px 0 0; font-family: var(--mono); font-size: 11px; line-height: 1.4; letter-spacing: .02em; color: #8C8C8C; }
+.title { margin: 20px 0 16px; font-family: var(--disp); font-weight: 600; font-size: 33px; line-height: 1; letter-spacing: .005em; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile {
+  all: unset; box-sizing: border-box; cursor: pointer; display: block; position: relative; height: 148px;
+  border-radius: 5px; overflow: hidden; background: #101010; border: 1px solid #1E1E1E;
+}
+.tile svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tile-name {
+  position: absolute; left: 11px; right: 11px; bottom: 10px; white-space: pre-line;
+  font-family: var(--disp); font-weight: 500; font-size: 18px; line-height: 1.05; color: #C8C8C8;
+}
+.tile .dot { display: none; position: absolute; top: 10px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.tile.on { border-color: var(--accent); }
+.tile.on .tile-name { color: #FFFFFF; }
+.tile.on .dot { display: block; }
+.foot-note { margin: 14px 0 0; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: #3E3E3E; text-align: center; }
+
+/* ---------- Экран 2: результат ---------- */
+
+.game-row { margin-top: 14px; display: flex; align-items: baseline; gap: 10px; }
+.game-name { font-family: var(--disp); font-weight: 500; font-size: 19px; }
+.fps { margin-top: 20px; text-align: center; }
+.fps-num { font-family: var(--disp); font-weight: 700; font-size: 78px; line-height: .9; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.fps-unit { margin-top: 6px; font-family: var(--disp); font-weight: 500; font-size: 15px; letter-spacing: .34em; color: var(--accent); }
+
+/* Шкала 0–300 FPS. Границы зон: 60 FPS = 20%, 144 FPS = 48% */
+.scale { margin-top: 24px; position: relative; }
+.scale-bar { display: flex; height: 12px; border-radius: 2px; overflow: hidden; background: #111; }
+.zone-1 { width: 20%; background: #191919; }
+.zone-2 { width: 28%; background: #232323; border-left: 1px solid var(--bg); border-right: 1px solid var(--bg); }
+.zone-3 { width: 52%; background: #2C2C2C; }
+.marker { position: absolute; left: 1.5%; top: -8px; height: 28px; width: 2px; margin-left: -1px; background: var(--accent); transition: left .25s ease-out; }
+.marker-tip {
+  position: absolute; left: 1.5%; top: -13px; margin-left: -4px; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid var(--accent);
+  transition: left .25s ease-out;
+}
+.scale-labels { display: flex; margin-top: 12px; font-family: var(--mono); font-size: 9px; letter-spacing: .05em; color: #4E4E4E; }
+.scale-labels span:nth-child(1) { width: 20%; white-space: nowrap; }
+.scale-labels span:nth-child(2) { width: 28%; text-align: center; }
+.scale-labels span:nth-child(3) { width: 52%; text-align: right; }
+.scale-labels .on { color: #F2F2F2; }
+
+.group-res { margin-top: 26px; }
+.group-q { margin-top: 16px; }
+.seg { display: flex; gap: 6px; margin-top: 8px; }
+.seg button {
+  all: unset; box-sizing: border-box; cursor: pointer; flex: 1; text-align: center; padding: 12px 0; border-radius: 4px;
+  font-family: var(--disp); font-weight: 500; font-size: 15px; background: #121212; color: #8C8C8C; border: 1px solid #232323;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+.rail-wrap { margin-top: 22px; }
+.rail { display: flex; gap: 8px; margin: 8px -16px 0; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.build-card {
+  all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 150px; padding: 11px 12px;
+  border-radius: 5px; background: #101010; border: 1px solid #262626;
+}
+.build-card[aria-pressed="true"] { background: #141414; border-color: var(--accent); }
+.build-card b { display: block; font-family: var(--disp); font-weight: 400; font-size: 15px; color: #F2F2F2; }
+.build-card small { display: block; margin-top: 3px; font-family: var(--mono); font-size: 9px; color: #8C8C8C; }
+
+.note { margin: 20px 0 0; font-family: var(--mono); font-size: 9.5px; line-height: 1.5; color: #4E4E4E; }
+.link-row {
+  all: unset; box-sizing: border-box; cursor: pointer; margin-top: 16px; display: flex; width: 100%;
+  align-items: center; justify-content: space-between; padding: 15px 14px; border-radius: 5px;
+  background: #101010; border: 1px solid #1E1E1E; color: #F2F2F2;
+}
+.link-row span:first-child { font-family: var(--disp); font-weight: 500; font-size: 16px; }
+.link-row span:last-child { font-family: var(--mono); font-size: 13px; color: #8C8C8C; }
+
+.order {
+  display: block; text-align: center; padding: 16px 0; border-radius: 5px; background: var(--accent); color: var(--bg);
+  font-family: var(--disp); font-weight: 600; font-size: 17px; letter-spacing: .03em; text-decoration: none;
+}
+.order:active { filter: brightness(1.08); }
+
+/* ---------- Экран 3: на чём это работает ---------- */
+
+.title-build { margin: 12px 0 2px; font-family: var(--disp); font-weight: 600; font-size: 27px; line-height: 1.05; }
+.sub-build { margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: #7A7A7A; }
+
+.case { margin-top: 14px; position: relative; border-radius: 6px; background: #0C0C0C; border: 1px solid #1A1A1A; overflow: hidden; }
+.case svg { display: block; width: 100%; height: auto; }
+.case-state { position: absolute; top: 10px; left: 12px; z-index: 2; font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: #8C8C8C; }
+.replay {
+  all: unset; cursor: pointer; position: absolute; top: 7px; right: 9px; z-index: 2; padding: 4px 8px; border-radius: 3px;
+  border: 1px solid #242424; background: #111; font-family: var(--mono); font-size: 9px; letter-spacing: .08em; color: #8C8C8C;
+}
+.case-hint { position: absolute; bottom: 10px; right: 12px; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: #3E3E3E; }
+
+.parts { margin-top: 16px; border-top: 1px solid #1A1A1A; }
+.part {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; width: 100%; gap: 12px;
+  justify-content: space-between; align-items: center; padding: 10px 2px; border-bottom: 1px solid #141414;
+}
+.part:last-child { border-bottom: 0; }
+.part-key { flex: none; font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; color: #5A5A5A; }
+.part-val { font-family: var(--sans); font-size: 13.5px; color: #E6E6E6; text-align: right; }
+.part[aria-pressed="true"] { background: #151313; }
+.part[aria-pressed="true"] .part-val { color: var(--accent); }
+
+.price-row { margin-top: 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.price { font-family: var(--disp); font-weight: 600; font-size: 34px; line-height: 1; color: var(--accent); white-space: nowrap; }
+.meta { text-align: right; font-family: var(--mono); font-size: 10px; line-height: 1.7; color: #7A7A7A; }
+.meta .stock { color: #F2F2F2; }
+
+/* ---------- Анимации корпуса ---------- */
+
+@keyframes shramFly { from { transform: translate(-66px, 27px); opacity: 0; } to { transform: translate(0, 0); opacity: 1; } }
+@keyframes shramDrop { from { transform: translate(0, -58px); opacity: 0; } to { transform: translate(0, 0); opacity: 1; } }
+@keyframes shramGlow { from { opacity: 0; } to { opacity: 1; } }
+@keyframes shramSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes shramPulse { 0%, 100% { opacity: .5; } 50% { opacity: .95; } }
+
+.a-fly { animation: shramFly .5s cubic-bezier(.16, .84, .28, 1) both; }
+.a-fly.a-fast { animation-duration: .4s; }
+.a-fly.a-slow { animation-duration: .55s; }
+.a-drop { animation: shramDrop .45s cubic-bezier(.16, .84, .28, 1) both; }
+.a-glow { animation: shramGlow .7s ease-out both; }
+.a-glow.a-long { animation-duration: .9s; }
+.a-spin { transform-origin: 0 0; animation: shramSpin 1.15s linear 1.9s infinite; }
+.a-pulse { animation: shramPulse 3.6s ease-in-out infinite; }
+
+/* Тап по корпусу — пропустить сборку: сразу конечный кадр, как после анимации */
+.skip .a-fly, .skip .a-drop, .skip .a-glow { animation-delay: 0s !important; animation-duration: 0s !important; }
+.skip .a-spin { animation-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .a-fly, .a-drop, .a-glow { animation-delay: 0s !important; animation-duration: 0s !important; }
+  .a-spin, .a-pulse { animation: none; }
+  .marker, .marker-tip { transition: none; }
+}

@@ -1,0 +1,5 @@
+# Исходники из Claude Design — только локально, не публикуются
+design/
+
+# Служебные файлы Claude Code
+.claude/
