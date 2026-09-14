@@ -7,6 +7,15 @@
 <meta name="theme-color" content="#0A0A0A">
 <title>Shram PC — сколько FPS</title>
 <link rel="icon" href="data:,">
+<!-- three.js для 3D-корпуса — локальные копии, грузятся только после выбора игры -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.min.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/three/OrbitControls.js"
+  }
+}
+</script>
 <link rel="stylesheet" href="css/app.css">
 <!-- Telegram SDK, локальная копия. Если файла нет — приложение работает без Telegram-функций. -->
 <script src="vendor/telegram-web-app.js"></script>

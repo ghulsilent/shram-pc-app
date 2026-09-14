@@ -174,6 +174,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .case-hint { position: absolute; bottom: 10px; right: 12px; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: #3E3E3E; }
 
+/* 3D-корпус: включается классом .is-3d, иначе виден рисованный */
+.case3d { width: 100%; aspect-ratio: 21 / 20; }
+.case3d canvas { display: block; }
+.case:not(.is-3d) .case3d { display: none; }
+.case.is-3d #caseSvg { display: none; }
+
 .parts { margin-top: 16px; border-top: 1px solid #1A1A1A; }
 .part {
   all: unset; box-sizing: border-box; cursor: pointer; display: flex; width: 100%; gap: 12px;

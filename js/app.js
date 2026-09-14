@@ -24,11 +24,16 @@
 
   const ORDER_CHAT = 'https://t.me/shram_1';
 
+  // Корпус на экране 3: '3d' — трёхмерный, если устройство тянет; 'svg' — рисованный из дизайна.
+  // Для проверки вручную: ?case=3d или ?case=svg в адресе.
+  const DEFAULT_CASE = '3d';
+  const CASE_STORAGE_KEY = 'shram-case';
+
   const PARTS = [
     ['gpu', 'ВИДЕОКАРТА'], ['cpu', 'ПРОЦЕССОР'], ['mb', 'ПЛАТА'], ['ram', 'ПАМЯТЬ'],
     ['ssd', 'НАКОПИТЕЛЬ'], ['psu', 'ПИТАНИЕ'], ['cooler', 'ОХЛАЖДЕНИЕ'], ['chassis', 'КОРПУС']
   ];
-  // Габариты деталей внутри корпуса: [x, y, z, ширина, глубина, высота].
+  // Габариты деталей в рисованном корпусе: [x, y, z, ширина, глубина, высота].
   const PART_BOX = {
     gpu: [32, 8, 62, 92, 34, 11],
     cpu: [52, 8, 92, 28, 28, 26],
@@ -39,7 +44,7 @@
     psu: [12, 5, 5, 58, 58, 30],
     chassis: [0, 0, 0, 150, 70, 150]
   };
-  const ASSEMBLY_MS = 2650; // последней загорается подсветка: 1,95 с + 0,7 с
+  const ASSEMBLY_MS = 2650; // рисованный корпус: последней загорается подсветка, 1,95 с + 0,7 с
 
   /* ---------- Telegram ---------- */
 
@@ -91,7 +96,7 @@
 
   const currentBuild = () => BUILDS[state.build];
   const currentGame = () => GAMES.find(g => g.id === state.game);
-  const formatPrice = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+  const formatPrice = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 
   /* ---------- Расчёт FPS ---------- */
 
@@ -168,6 +173,7 @@
     $('gameName').textContent = currentGame().name;
     show('result');
     roll();
+    preload3d(); // пока человек смотрит на цифру, 3D успевает загрузиться
   }
 
   /* ---------- Экран 2: результат ---------- */
@@ -247,12 +253,13 @@
     drawHighlight();
   }
 
-  // Изометрическая проекция, как в дизайне.
+  // Изометрическая проекция рисованного корпуса, как в дизайне.
   function iso(x, y, z) {
     return (70 + 0.87 * (x - y)).toFixed(1) + ',' + (150 + 0.36 * (x + y) - 0.72 * z).toFixed(1);
   }
 
   function drawHighlight() {
+    if (case3d) case3d.highlight(state.hl);
     const g = $('hl');
     const box = state.hl && PART_BOX[state.hl];
     g.style.display = box ? '' : 'none';
@@ -267,18 +274,30 @@
   }
 
   let assemblyTimer = null;
+  const using3d = () => $('caseBox').classList.contains('is-3d');
 
   function startAssembly() {
+    clearTimeout(assemblyTimer);
+    const use3d = !!case3d;
+    $('caseBox').classList.toggle('is-3d', use3d);
+    setAssembled(false);
+    if (use3d) {
+      case3d.highlight(state.hl);
+      case3d.replay(); // конец сборки придёт через onAssembled
+      return;
+    }
     $('caseSvg').classList.remove('skip');
     const parts = $('caseParts');
     parts.replaceWith(parts.cloneNode(true)); // новый узел — CSS-анимации начинаются заново
-    setAssembled(false);
-    clearTimeout(assemblyTimer);
     assemblyTimer = setTimeout(() => setAssembled(true), ASSEMBLY_MS);
   }
 
   function skipAssembly() {
     if (state.assembled) return;
+    if (using3d() && case3d) {
+      case3d.skip();
+      return;
+    }
     clearTimeout(assemblyTimer);
     $('caseSvg').classList.add('skip');
     setAssembled(true);
@@ -287,7 +306,75 @@
   function setAssembled(done) {
     state.assembled = done;
     $('caseState').textContent = done ? 'СОБРАН · ПОДСВЕТКА' : 'СОБИРАЕМ';
-    $('caseHint').hidden = done;
+    $('caseHint').textContent = done ? 'потяни — повернуть' : 'тап — пропустить';
+    $('caseHint').hidden = done && !using3d();
+  }
+
+  /* ---------- 3D-корпус ---------- */
+
+  let caseMode = 'svg'; // выбирается в init()
+  let case3d = null;
+  let case3dLoading = false;
+
+  // three.js 0.163+ работает только на WebGL2; import map нужна для локальных модулей.
+  function supports3d() {
+    if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) return false;
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (!gl) return false;
+      const lose = gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function pickCaseMode() {
+    const forced = new URLSearchParams(location.search).get('case');
+    if (forced === 'svg') return 'svg';
+    if (forced === '3d') return supports3d() ? '3d' : 'svg';
+    try {
+      if (localStorage.getItem(CASE_STORAGE_KEY) === 'svg') return 'svg';
+    } catch (e) { /* хранилище недоступно */ }
+    return DEFAULT_CASE === '3d' && supports3d() ? '3d' : 'svg';
+  }
+
+  function preload3d() {
+    if (caseMode !== '3d' || case3d || case3dLoading) return;
+    case3dLoading = true;
+    import('./case3d.js')
+      .then(m => m.createCase3D($('case3d'), {
+        onAssembled: () => setAssembled(true),
+        onSlow: () => fallbackToSvg(true),
+        onFail: () => fallbackToSvg(false)
+      }))
+      .then(c => { case3d = c; })
+      .catch(err => {
+        console.warn('3D-корпус не загрузился, остаётся рисованный', err);
+        caseMode = 'svg';
+      })
+      .then(() => { case3dLoading = false; });
+  }
+
+  // Телефон не тянет 3D — показываем рисованный корпус и запоминаем это на устройстве.
+  function fallbackToSvg(remember) {
+    if (remember) {
+      try { localStorage.setItem(CASE_STORAGE_KEY, 'svg'); } catch (e) { /* хранилище недоступно */ }
+    }
+    caseMode = 'svg';
+    const wasActive = using3d();
+    if (case3d) {
+      const c = case3d;
+      case3d = null;
+      c.dispose();
+    }
+    $('caseBox').classList.remove('is-3d');
+    if (wasActive) {
+      $('caseSvg').classList.add('skip');
+      setAssembled(true);
+      drawHighlight();
+    }
   }
 
   /* ---------- Навигация ---------- */
@@ -345,6 +432,11 @@
     // Чтобы прокрутка экрана 3 вниз не сворачивала приложение.
     tgCall('7.7', t => t.disableVerticalSwipes());
     tgCall('6.1', t => t.BackButton.onClick(goBack));
+
+    caseMode = pickCaseMode();
+    const holder = el('div', 'case3d');
+    holder.id = 'case3d';
+    $('caseBox').insertBefore(holder, $('caseHint'));
 
     renderTiles();
     renderSeg('resSeg', RESOLUTIONS, 'res');
