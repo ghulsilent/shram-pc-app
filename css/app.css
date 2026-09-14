@@ -99,6 +99,37 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .tile.on .dot { display: block; }
 .foot-note { margin: 14px 0 0; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: #3E3E3E; text-align: center; }
 
+/* ---------- Экран 0: каталог сборок ---------- */
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card {
+  all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: flex; flex-direction: column;
+  border-radius: 8px; overflow: hidden; background: #101010; border: 1px solid #1E1E1E;
+}
+.card:active { border-color: var(--accent); }
+.card-img { position: relative; aspect-ratio: 3 / 4; background: #0C0C0C; overflow: hidden; }
+.card-img .stripes { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-art { position: absolute; left: 7%; top: 52%; width: 86%; height: auto; transform: translateY(-50%); }
+.card-badge {
+  position: absolute; top: 8px; left: 8px; padding: 3px 6px; border-radius: 3px; background: var(--accent); color: var(--bg);
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em;
+}
+.card-body { display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; }
+.card-price { font-family: var(--disp); font-weight: 600; font-size: 21px; line-height: 1.1; color: var(--accent); white-space: nowrap; }
+.card-name { font-family: var(--disp); font-weight: 500; font-size: 16px; line-height: 1.2; color: #F2F2F2; }
+.card-spec { font-family: var(--mono); font-size: 9.5px; line-height: 1.45; color: #7A7A7A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-cta { margin-top: 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; color: var(--accent); }
+
+/* Пустое место в каталоге — «скоро» */
+.card.soon { cursor: default; background: #0D0D0D; border: 1px dashed #262626; }
+.card.soon .card-img { opacity: .55; }
+.card.soon .card-body { gap: 7px; padding-top: 13px; }
+.skeleton { display: block; height: 9px; border-radius: 2px; background: #151515; }
+.soon-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; pointer-events: none; }
+.soon-label b { font-family: var(--disp); font-weight: 600; font-size: 26px; letter-spacing: .14em; color: #6E6E6E; }
+.soon-label small { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; color: #4E4E4E; }
+
 /* ---------- Экран 2: результат ---------- */
 
 .game-row { margin-top: 14px; display: flex; align-items: baseline; gap: 10px; }

@@ -24,6 +24,9 @@
 
   const ORDER_CHAT = 'https://t.me/shram_1';
 
+  // Сколько карточек в каталоге. Пока сборок меньше, пустые места занимают карточки «скоро».
+  const CATALOG_SLOTS = 3;
+
   // Корпус на экране 3: '3d' — трёхмерный, если устройство тянет; 'svg' — рисованный из дизайна.
   // Для проверки вручную: ?case=3d или ?case=svg в адресе.
   const DEFAULT_CASE = '3d';
@@ -45,6 +48,8 @@
     chassis: [0, 0, 0, 150, 70, 150]
   };
   const ASSEMBLY_MS = 2650; // рисованный корпус: последней загорается подсветка, 1,95 с + 0,7 с
+
+  const STRIPES = '<svg class="stripes" aria-hidden="true"><rect width="100%" height="100%" fill="url(#shStripe)"/></svg>';
 
   /* ---------- Telegram ---------- */
 
@@ -74,7 +79,7 @@
   /* ---------- Состояние ---------- */
 
   const state = {
-    screen: 'games',
+    screen: 'catalog',
     game: null,
     build: 0,
     res: '1080p',
@@ -149,6 +154,80 @@
         Math.max(10, Math.round(hi0 + (t.hi - hi0) * p + (Math.random() - 0.5) * jitter))
       );
     }, 42);
+  }
+
+  /* ---------- Экран 0: каталог сборок ---------- */
+
+  // Картинка для карточки без фото — рисованный корпус с экрана 3, в собранном виде.
+  function caseArt() {
+    const svg = $('caseSvg').cloneNode(true);
+    svg.querySelector('#hl').remove();
+    svg.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    ['id', 'role', 'aria-label'].forEach(a => svg.removeAttribute(a));
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('card-art', 'skip');
+    return svg;
+  }
+
+  function renderCards() {
+    const box = $('cards');
+    const art = caseArt();
+
+    BUILDS.forEach((b, i) => {
+      const card = el('button', 'card');
+      card.type = 'button';
+
+      const img = el('div', 'card-img');
+      if (b.image) {
+        const photo = el('img');
+        photo.src = b.image;
+        photo.alt = b.name;
+        img.appendChild(photo);
+      } else {
+        img.innerHTML = STRIPES;
+        img.appendChild(art.cloneNode(true));
+      }
+      img.appendChild(el('span', 'card-badge', b.stock > 0 ? 'В НАЛИЧИИ ' + b.stock + ' ШТ' : 'НЕТ В НАЛИЧИИ'));
+
+      const body = el('div', 'card-body');
+      body.appendChild(el('span', 'card-price', formatPrice(b.price)));
+      body.appendChild(el('span', 'card-name', b.name));
+      body.appendChild(el('span', 'card-spec', b.parts.gpu));
+      body.appendChild(el('span', 'card-spec', b.parts.cpu));
+      body.appendChild(el('span', 'card-cta', 'УЗНАТЬ FPS →'));
+
+      card.append(img, body);
+      card.addEventListener('click', () => pickBuild(i));
+      box.appendChild(card);
+    });
+
+    for (let i = BUILDS.length; i < CATALOG_SLOTS; i++) {
+      const card = el('div', 'card soon');
+      card.setAttribute('aria-label', 'Скоро появится новая сборка');
+      const img = el('div', 'card-img');
+      img.innerHTML = STRIPES;
+      const body = el('div', 'card-body');
+      ['55%', '80%', '65%', '45%'].forEach(w => {
+        const bar = el('span', 'skeleton');
+        bar.style.width = w;
+        body.appendChild(bar);
+      });
+      const label = el('div', 'soon-label');
+      label.appendChild(el('b', null, 'СКОРО'));
+      label.appendChild(el('small', null, 'новая сборка'));
+      card.append(img, body, label);
+      box.appendChild(card);
+    }
+  }
+
+  function pickBuild(i) {
+    haptic('light');
+    if (state.build !== i) {
+      state.build = i;
+      syncPressed($('rail'), i);
+      renderBuild();
+    }
+    show('games');
   }
 
   /* ---------- Экран 1: игры ---------- */
@@ -227,6 +306,7 @@
 
   function renderBuild() {
     const b = currentBuild();
+    $('gamesTagline').textContent = 'Сколько FPS даст «' + b.name + '»';
     $('buildSub').textContent = '«' + b.name + '» · ' + b.subtitle;
     $('price').textContent = formatPrice(b.price);
     $('stock').textContent = b.stock > 0 ? 'в наличии: ' + b.stock + ' шт' : 'нет в наличии';
@@ -379,7 +459,7 @@
 
   /* ---------- Навигация ---------- */
 
-  const SCREENS = ['games', 'result', 'build'];
+  const SCREENS = ['catalog', 'games', 'result', 'build'];
 
   function show(name) {
     if (state.screen === name) return;
@@ -387,13 +467,13 @@
     state.screen = name;
     document.querySelectorAll('.screen').forEach(s => { s.hidden = s.dataset.screen !== name; });
     if (forward) document.querySelector('.screen[data-screen="' + name + '"] .scroll').scrollTop = 0;
-    tgCall('6.1', t => (name === 'games' ? t.BackButton.hide() : t.BackButton.show()));
+    tgCall('6.1', t => (name === 'catalog' ? t.BackButton.hide() : t.BackButton.show()));
     if (name === 'build') startAssembly();
   }
 
   function goBack() {
-    if (state.screen === 'build') show('result');
-    else if (state.screen === 'result') show('games');
+    const i = SCREENS.indexOf(state.screen);
+    if (i > 0) show(SCREENS[i - 1]);
   }
 
   /* ---------- Заказ ---------- */
@@ -438,6 +518,7 @@
     holder.id = 'case3d';
     $('caseBox').insertBefore(holder, $('caseHint'));
 
+    renderCards();
     renderTiles();
     renderSeg('resSeg', RESOLUTIONS, 'res');
     renderSeg('qSeg', QUALITIES, 'q');
