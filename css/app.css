@@ -211,8 +211,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .case-hint { position: absolute; bottom: 10px; right: 12px; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: #3E3E3E; }
 
 /* 3D-корпус: включается классом .is-3d, иначе виден рисованный */
-.case3d { width: 100%; aspect-ratio: 21 / 20; }
+.case3d { position: relative; width: 100%; aspect-ratio: 21 / 20; }
 .case3d canvas { display: block; }
+/* Виньетка из дизайна 3D-модели: тёплый центр, затемнённые края */
+.case3d::after, .card-3d::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 78% 74% at 54% 46%, rgba(226, 88, 63, .035) 0%, rgba(10, 10, 10, 0) 55%, rgba(0, 0, 0, .42) 100%);
+}
 .case:not(.is-3d) .case3d { display: none; }
 .case.is-3d #caseSvg { display: none; }
 
