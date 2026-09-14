@@ -1,5 +1,11 @@
-// 3D-корпус для экрана «На чём это работает».
+// 3D-корпус: карточка «Первая кровь» в каталоге и экран «На чём это работает».
 // Модель перенесена из design/Gaming_PC_3D__standalone_.html (Claude Design).
+// Рендерер один на всё приложение: холст переносится между карточкой и экраном 3 через attach().
+//
+// Режимы:
+//  - 'card'  — корпус собран, подсветка горит, камера плавно покачивается; тап достаётся карточке;
+//  - 'stage' — детали влетают по очереди, корпус вращается пальцем, строки списка обводят детали.
+//
 // Что изменено по ТЗ §7:
 //  - three.js лежит локально (vendor/three), экспортёры OBJ и GLTF выброшены;
 //  - детали влетают по очереди: плата → процессор → память → накопитель → видеокарта,
@@ -15,40 +21,39 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const TIMING = { start: 150, step: 340, fly: 480, glow: 500 }; // мс
 const FLY_FROM = new THREE.Vector3(0.3, 0.1, 0); // деталь влетает из открытого бока корпуса
 const GLOW = { accent: 1.0, accentSoft: 0.4, light: 0.12 };
+const FRAMING = { card: 0.95, stage: 1.08 };  // запас вокруг корпуса в кадре
+const SWING = { speed: 0.5, angle: 0.6 };      // покачивание на карточке: скорость и амплитуда, рад
 const SLOW_FRAME_MS = 50; // средний кадр дольше 50 мс (меньше 20 к/с) — телефон не тянет
 const WARMUP_FRAMES = 45;
 const SAMPLE_FRAMES = 90;
 
 const clamp01 = v => Math.max(0, Math.min(1, v));
 
-export function createCase3D(container, { onAssembled, onSlow, onFail } = {}) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+export function createCase3D(initialContainer, initialMode, { onAssembled, onSlow, onFail } = {}) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setClearColor(0x0C0C0C, 1);
+  renderer.setClearColor(0x000000, 0); // фон даёт карточка или блок корпуса
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
   const canvas = renderer.domElement;
-  container.appendChild(canvas);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 50);
   const { model, parts, spinners, materials, accentLight, outlines } = buildModel();
   scene.add(model);
 
-  // Камера — как в дизайне: сбоку-спереди, открытым боком к зрителю.
-  // Контуры подсветки в расчёт не берём: до первого кадра у них размер единичного куба.
+  // Кадрирование — по корпусу и деталям. Контуры подсветки не считаем: до первого кадра у них размер единичного куба.
   model.updateMatrixWorld(true);
   const bounds = new THREE.Box3();
   model.children.forEach(c => { if (c.type !== 'Box3Helper') bounds.expandByObject(c); });
   const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-  const dist = sphere.radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08;
-  camera.position.copy(sphere.center).add(new THREE.Vector3(1, 0.55, 1.25).normalize().multiplyScalar(dist));
-  camera.near = dist / 50;
-  camera.far = dist * 10;
-  camera.updateProjectionMatrix();
+  const target = sphere.center;
+  // Исходный ракурс как в дизайне: сбоку-спереди, открытым боком к зрителю.
+  const home = new THREE.Spherical().setFromVector3(new THREE.Vector3(1, 0.55, 1.25));
+  const orbit = new THREE.Spherical();
 
   const controls = new OrbitControls(camera, canvas);
-  controls.target.copy(sphere.center);
+  controls.target.copy(target);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
@@ -56,17 +61,28 @@ export function createCase3D(container, { onAssembled, onSlow, onFail } = {}) {
   controls.minPolarAngle = 0.5;
   controls.maxPolarAngle = 1.42;
   controls.rotateSpeed = 0.8;
-  controls.update();
-  canvas.style.touchAction = 'pan-y'; // вертикальный свайп листает экран, горизонтальный — вращает
 
   renderer.compile(scene, camera); // шейдеры заранее, чтобы первый кадр не подвисал
 
-  /* ---------- Сборка ---------- */
-
+  let container = null;
+  let mode = null;
+  let dist = 1;
   let t0 = 0;
   let pendingStart = false;
   let assembled = false;
+  let notify = true;
   let disposed = false;
+  let running = false;
+  let inView = false;
+  let last = 0;
+  let swing = 0;
+  let watched = 0;
+  let slowSum = 0;
+  let watchdogDone = false;
+
+  const renderIdle = () => { if (!running && !disposed) renderer.render(scene, camera); };
+
+  /* ---------- Сборка ---------- */
 
   function setGlow(g) {
     materials.accent.emissiveIntensity = GLOW.accent * g;
@@ -85,64 +101,98 @@ export function createCase3D(container, { onAssembled, onSlow, onFail } = {}) {
     setGlow(clamp01((t - glowAt) / TIMING.glow));
     if (t >= glowAt + TIMING.glow && !assembled) {
       assembled = true;
-      if (onAssembled) onAssembled();
+      if (notify && onAssembled) onAssembled();
     }
+  }
+
+  // Сразу конечный кадр сборки; withNotify — сообщить приложению (экран 3), для карточки не нужно.
+  function finish(withNotify) {
+    pendingStart = false;
+    notify = withNotify;
+    applyTimeline(Infinity);
+    notify = true;
   }
 
   function replay() {
     assembled = false;
     pendingStart = true; // отсчёт — с первого видимого кадра
     applyTimeline(0);
-    if (!running) renderer.render(scene, camera);
+    renderIdle();
   }
 
   function skip() {
     if (assembled) return;
-    pendingStart = false;
-    applyTimeline(Infinity);
-    if (!running) renderer.render(scene, camera);
+    finish(true);
+    renderIdle();
   }
 
   function highlight(key) {
     Object.values(outlines).forEach(o => { o.visible = false; });
     if (outlines[key]) outlines[key].visible = true;
-    if (!running) renderer.render(scene, camera);
+    renderIdle();
+  }
+
+  /* ---------- Камера ---------- */
+
+  function placeCamera(azimuth) {
+    orbit.set(dist, home.phi, azimuth);
+    camera.position.setFromSpherical(orbit).add(target);
+    camera.lookAt(target);
+  }
+
+  // Корпус целиком в кадре и в широком блоке, и в высокой карточке.
+  function resize() {
+    if (!container) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    const half = THREE.MathUtils.degToRad(camera.fov / 2);
+    const fit = Math.min(half, Math.atan(Math.tan(half) * camera.aspect));
+    dist = sphere.radius / Math.tan(fit) * FRAMING[mode];
+    camera.near = dist / 50;
+    camera.far = dist * 10;
+    camera.updateProjectionMatrix();
+    const dir = camera.position.clone().sub(target);
+    if (dir.lengthSq() < 1e-8) dir.set(1, 0.55, 1.25);
+    camera.position.copy(target).add(dir.setLength(dist));
+    camera.lookAt(target);
+    if (mode === 'stage') controls.update();
+    renderIdle();
   }
 
   /* ---------- Цикл отрисовки ---------- */
 
-  let last = 0;
-  let watched = 0;
-  let slowSum = 0;
-  let watchdogDone = false;
-
   function frame(now) {
     if (disposed) return;
     if (pendingStart) { t0 = now; pendingStart = false; }
-    const dt = last ? now - last : 0;
+    const raw = last ? now - last : 0;
+    const dt = Math.min(raw, 50);
     last = now;
     if (!assembled) applyTimeline(now - t0);
     if (assembled) {
-      const step = Math.min(dt, 50) / 1000;
-      for (const s of spinners) s.rotor.rotateZ(s.speed * step);
+      for (const s of spinners) s.rotor.rotateZ(s.speed * dt / 1000);
     }
-    controls.update();
+    if (mode === 'card') {
+      swing += dt / 1000;
+      placeCamera(home.theta + Math.sin(swing * SWING.speed) * SWING.angle);
+    } else {
+      controls.update();
+    }
     renderer.render(scene, camera);
-    if (assembled && dt > 0 && !watchdogDone) watch(dt);
+    if (assembled && raw > 0 && !watchdogDone) watch(raw);
   }
 
   // Если вращение дёргается — откат на рисованный корпус (ТЗ §7).
-  function watch(dt) {
+  function watch(frameMs) {
     watched++;
     if (watched <= WARMUP_FRAMES) return;
-    slowSum += dt;
+    slowSum += frameMs;
     if (watched < WARMUP_FRAMES + SAMPLE_FRAMES) return;
     watchdogDone = true;
     if (slowSum / SAMPLE_FRAMES > SLOW_FRAME_MS && onSlow) onSlow();
   }
-
-  let inView = false;
-  let running = false;
 
   function sync() {
     const on = inView && !document.hidden && !disposed;
@@ -156,24 +206,43 @@ export function createCase3D(container, { onAssembled, onSlow, onFail } = {}) {
     inView = entries[entries.length - 1].isIntersecting;
     sync();
   });
-  io.observe(container);
+  const ro = new ResizeObserver(resize);
   document.addEventListener('visibilitychange', sync);
 
-  const ro = new ResizeObserver(() => {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    if (!w || !h) return;
-    renderer.setSize(w, h);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    if (!running) renderer.render(scene, camera);
-  });
-  ro.observe(container);
+  /* ---------- Перенос между карточкой и экраном 3 ---------- */
 
-  // Тап пропускает сборку, а поворот пальцем — нет.
+  function attach(next, nextMode) {
+    if (disposed || !next) return;
+    if (next === container && nextMode === mode) return;
+    container = next;
+    mode = nextMode;
+    container.appendChild(canvas);
+    io.disconnect();
+    io.observe(container);
+    ro.disconnect();
+    ro.observe(container);
+    inView = false;
+    sync();
+
+    const stage = mode === 'stage';
+    controls.enabled = stage;
+    canvas.style.touchAction = stage ? 'pan-y' : 'auto'; // в каталоге свайп листает список
+    highlight(null);
+    if (!stage) {
+      swing = 0;
+      finish(false);
+    }
+    resize();
+    placeCamera(home.theta);
+    if (stage) controls.update();
+    renderIdle();
+  }
+
+  // На экране 3 тап пропускает сборку, а поворот пальцем — нет.
   let downAt = null;
   const onDown = e => { downAt = [e.clientX, e.clientY]; };
   const onClick = e => {
+    if (mode !== 'stage') return;
     if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) e.stopPropagation();
   };
   const onLost = e => {
@@ -203,7 +272,8 @@ export function createCase3D(container, { onAssembled, onSlow, onFail } = {}) {
   }
 
   applyTimeline(0);
-  return { replay, skip, highlight, dispose };
+  attach(initialContainer, initialMode);
+  return { attach, replay, skip, highlight, dispose };
 }
 
 /* ---------- Модель ---------- */

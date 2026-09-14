@@ -27,8 +27,8 @@
   // Сколько карточек в каталоге. Пока сборок меньше, пустые места занимают карточки «скоро».
   const CATALOG_SLOTS = 3;
 
-  // Корпус на экране 3: '3d' — трёхмерный, если устройство тянет; 'svg' — рисованный из дизайна.
-  // Для проверки вручную: ?case=3d или ?case=svg в адресе.
+  // Корпус в карточке «Первая кровь» и на экране 3: '3d' — трёхмерный, если устройство тянет;
+  // 'svg' — рисованный из дизайна. Для проверки вручную: ?case=3d или ?case=svg в адресе.
   const DEFAULT_CASE = '3d';
   const CASE_STORAGE_KEY = 'shram-case';
 
@@ -159,6 +159,7 @@
   /* ---------- Экран 0: каталог сборок ---------- */
 
   // Картинка для карточки без фото — рисованный корпус с экрана 3, в собранном виде.
+  // У первой сборки поверх неё встаёт 3D-модель, когда загрузится.
   function caseArt() {
     const svg = $('caseSvg').cloneNode(true);
     svg.querySelector('#hl').remove();
@@ -186,6 +187,11 @@
       } else {
         img.innerHTML = STRIPES;
         img.appendChild(art.cloneNode(true));
+        if (i === 0) {
+          const holder = el('div', 'card-3d');
+          holder.id = 'card3d';
+          img.appendChild(holder);
+        }
       }
       img.appendChild(el('span', 'card-badge', b.stock > 0 ? 'В НАЛИЧИИ ' + b.stock + ' ШТ' : 'НЕТ В НАЛИЧИИ'));
 
@@ -252,7 +258,6 @@
     $('gameName').textContent = currentGame().name;
     show('result');
     roll();
-    preload3d(); // пока человек смотрит на цифру, 3D успевает загрузиться
   }
 
   /* ---------- Экран 2: результат ---------- */
@@ -339,7 +344,7 @@
   }
 
   function drawHighlight() {
-    if (case3d) case3d.highlight(state.hl);
+    if (case3d && state.screen === 'build') case3d.highlight(state.hl);
     const g = $('hl');
     const box = state.hl && PART_BOX[state.hl];
     g.style.display = box ? '' : 'none';
@@ -362,6 +367,7 @@
     $('caseBox').classList.toggle('is-3d', use3d);
     setAssembled(false);
     if (use3d) {
+      case3d.attach($('case3d'), 'stage'); // модель переезжает из карточки на экран 3
       case3d.highlight(state.hl);
       case3d.replay(); // конец сборки придёт через onAssembled
       return;
@@ -420,16 +426,28 @@
     return DEFAULT_CASE === '3d' && supports3d() ? '3d' : 'svg';
   }
 
+  // 3D в карточке: плавно проявляется поверх рисованного корпуса.
+  function showCard3d(on) {
+    const holder = $('card3d');
+    if (!holder) return;
+    holder.classList.toggle('on', on);
+    holder.parentNode.classList.toggle('is-3d', on);
+  }
+
   function preload3d() {
     if (caseMode !== '3d' || case3d || case3dLoading) return;
     case3dLoading = true;
+    const card = $('card3d');
     import('./case3d.js')
-      .then(m => m.createCase3D($('case3d'), {
+      .then(m => m.createCase3D(card || $('case3d'), card ? 'card' : 'stage', {
         onAssembled: () => setAssembled(true),
         onSlow: () => fallbackToSvg(true),
         onFail: () => fallbackToSvg(false)
       }))
-      .then(c => { case3d = c; })
+      .then(c => {
+        case3d = c;
+        if (card) showCard3d(true);
+      })
       .catch(err => {
         console.warn('3D-корпус не загрузился, остаётся рисованный', err);
         caseMode = 'svg';
@@ -449,6 +467,7 @@
       case3d = null;
       c.dispose();
     }
+    showCard3d(false);
     $('caseBox').classList.remove('is-3d');
     if (wasActive) {
       $('caseSvg').classList.add('skip');
@@ -469,6 +488,7 @@
     if (forward) document.querySelector('.screen[data-screen="' + name + '"] .scroll').scrollTop = 0;
     tgCall('6.1', t => (name === 'catalog' ? t.BackButton.hide() : t.BackButton.show()));
     if (name === 'build') startAssembly();
+    if (name === 'catalog' && case3d && $('card3d')) case3d.attach($('card3d'), 'card'); // модель возвращается в карточку
   }
 
   function goBack() {
@@ -536,6 +556,8 @@
       startAssembly();
     });
     document.querySelectorAll('.order').forEach(a => a.addEventListener('click', onOrder));
+
+    preload3d(); // 3D нужен уже в первой карточке каталога
   }
 
   init();
